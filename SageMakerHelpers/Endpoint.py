@@ -2,6 +2,7 @@ import botocore
 from ProductionVariant import ProducitonVariant
 from Base import SMObject
 from datetime import datetime
+from __logging__ import logger
 
 class Endpoint(SMObject):
 
@@ -39,7 +40,7 @@ class Endpoint(SMObject):
             try:
                 self.autoscaling.deregister_scalable_target(self.endpoint_name, v)
             except Exception as e:
-                print(e)
+                logger.error(e)
     
         final_variants = [pv for pv in variant_key_mapping.values()]
 
@@ -57,8 +58,7 @@ class Endpoint(SMObject):
 
     def deploy_config(self, config_name, wait=False):
         
-        print(f'Deploying the following configuration for endpoint {self.endpoint_name}:\n {config_name}...')
-        
+        logger.info(f'Deploying the following configuration for endpoint {self.endpoint_name}:\n {config_name}...')
         self.sm_session.update_endpoint(self.endpoint_name, config_name, wait=wait)
 
     def deploy_production_variants(self):
@@ -74,10 +74,10 @@ class Endpoint(SMObject):
             self.autoscaling_client = self.boto3_session.client('application-autoscaling')
 
         def register_scalable_target(self, variant, minimum=1, maximum=8):
-            print('Waiting on endpoint to be in service...')
+            logger.info('Waiting on endpoint to be in service...')
             waiter = self.sm_session.sagemaker_client.get_waiter('endpoint_in_service')
             waiter.wait(EndpointName=self.endpoint_name)
-            print('Endpoint in service. Registering as scalable target.')
+            logger.info('Endpoint in service. Registering as scalable target.')
             self.autoscaling_client.register_scalable_target(
                 ServiceNamespace='sagemaker',
                 ResourceId= f'endpoint/{self.endpoint_name}/variant/{variant}',
